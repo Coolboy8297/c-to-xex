@@ -122,19 +122,18 @@ $(OUTPUT).elf: $(OFILES)
 endif
 #---------------------------------------------------------------------------------
 
-# Optional: pack the linked PPC32 ELF into an XEX when XexTool is available.
-# This does not guarantee that a libxenon program is compatible with every XEX runtime.
-XEXTOOL ?= XexTool
+# Convert the libxenon ELF using the converter shipped with the Xenon toolchain.
+# This is the appropriate first attempt for libxenon builds; it does not guarantee
+# Aurora compatibility, which must still be tested on the console.
+XENON_ELF2XEX ?= xenon-elf2xex
 xex: $(BUILD) $(OUTPUT).elf
-	@if command -v "$(XEXTOOL)" >/dev/null 2>&1; then \
-		echo "Packing $(TARGET).elf into $(TARGET).xex with XexTool..."; \
-		if "$(XEXTOOL)" pack "$(OUTPUT).elf" -o "$(OUTPUT).xex"; then \
-			echo "XEX file created: $(OUTPUT).xex"; \
-		else \
-			echo "XEX packing failed; keeping ELF outputs for XeLL."; \
-			rm -f "$(OUTPUT).xex"; \
-		fi; \
-	else \
-		echo "XexTool not found — skipping .xex creation."; \
-		echo "You can still use $(TARGET).elf32 with XeLL."; \
-	fi
+	@set -e; \
+	if ! command -v "$(XENON_ELF2XEX)" >/dev/null 2>&1; then \
+		echo "ERROR: $(XENON_ELF2XEX) was not found in PATH."; \
+		echo "Check that DEVKITXENON/bin is on PATH and the libxenon toolchain includes the converter."; \
+		exit 1; \
+	fi; \
+	echo "Converting $(TARGET).elf to $(TARGET).xex with $(XENON_ELF2XEX)..."; \
+	"$(XENON_ELF2XEX)" "$(OUTPUT).elf" "$(OUTPUT).xex"; \
+	test -s "$(OUTPUT).xex"; \
+	echo "XEX created: $(OUTPUT).xex"
