@@ -1,10 +1,11 @@
+
 name: Build Xbox 360 Homebrew
 
 on:
   push:
     branches: [ main, master ]
   pull_request:
-  workflow_dispatch:   # allows manual "Run workflow" button
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,19 +17,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build
+      - name: Build Xbox 360 program
         run: |
           export DEVKITXENON=/usr/local/xenon
-          export PATH=$DEVKITXENON/bin:$DEVKITXENON/usr/bin:$PATH
+          export PATH="$DEVKITXENON/bin:$DEVKITXENON/usr/bin:$PATH"
+
+          echo "Cleaning previous build..."
           make clean || true
+
+          echo "Compiling project..."
           make
 
-      - name: Upload artifacts
+      - name: Check for XEX conversion tools
+        run: |
+          echo "Checking for xextool..."
+          if command -v xextool >/dev/null 2>&1; then
+            xextool -h || true
+          else
+            echo "xextool is not installed."
+          fi
+
+          echo "Checking for other XEX tools..."
+          find /usr/local /usr/bin \
+            -iname '*xex*' -type f 2>/dev/null | head -50
+
+          echo "Available build outputs:"
+          find . -maxdepth 3 -type f \
+            \( -name '*.elf' -o -name '*.elf32' -o -name '*.xex' \) \
+            -print
+
+      - name: Upload Xbox 360 build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: xbox360-homebrew
           path: |
-            *.elf
-            *.elf32
-            *.xex
+            **/*.elf
+            **/*.elf32
+            **/*.xex
           if-no-files-found: error
