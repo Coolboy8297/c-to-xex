@@ -36,6 +36,9 @@ jobs:
           python3 --version
           git clone --depth 1 https://github.com/Team-Resurgent/RXDK360.git /tmp/RXDK360
           test -f /tmp/RXDK360/tools/elf2xex.py
+          # Reserve one page before the first linked section for the PE headers.
+          sed -i 's/image_base = min(load_vaddrs) if load_vaddrs else None/image_base = (min(load_vaddrs) - 0x1000) if load_vaddrs else None/' /tmp/RXDK360/tools/elf2xex.py
+          grep -F 'image_base = (min(load_vaddrs) - 0x1000)' /tmp/RXDK360/tools/elf2xex.py
           sed -e 's|0x80000000|0x82000000|g' \
               -e 's|0x9E000000|0xA0000000|g' \
               -e 's|0xa0000000|0xA2000000|g' \
