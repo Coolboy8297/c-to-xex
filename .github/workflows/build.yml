@@ -1,4 +1,3 @@
-
 name: Build Xbox 360 Homebrew
 
 on:
@@ -17,6 +16,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Build XexTool from source
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends cmake g++ git ca-certificates
+
+          echo "Cloning XexTool and its required submodules..."
+          git clone --depth 1 --recurse-submodules https://github.com/Team-Resurgent/XexTool.git /tmp/XexTool
+
+          echo "Configuring XexTool..."
+          cmake -S /tmp/XexTool -B /tmp/XexTool/build -DCMAKE_BUILD_TYPE=Release
+
+          echo "Compiling XexTool..."
+          cmake --build /tmp/XexTool/build --config Release --parallel 2
+
+          echo "Testing XexTool..."
+          ctest --test-dir /tmp/XexTool/build --output-on-failure
+
+          echo "/tmp/XexTool/build" >> "$GITHUB_PATH"
+
       - name: Build Xbox 360 program
         run: |
           export DEVKITXENON=/usr/local/xenon
@@ -28,18 +46,8 @@ jobs:
           echo "Compiling project..."
           make
 
-      - name: Check for XEX conversion tools
-        run: |
-          echo "Checking for xextool..."
-          if command -v xextool >/dev/null 2>&1; then
-            xextool -h || true
-          else
-            echo "xextool is not installed."
-          fi
-
-          echo "Checking for other XEX tools..."
-          find /usr/local /usr/bin \
-            -iname '*xex*' -type f 2>/dev/null | head -50
+          echo "Attempting ELF-to-XEX packing..."
+          make xex
 
           echo "Available build outputs:"
           find . -maxdepth 3 -type f \
