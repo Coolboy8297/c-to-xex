@@ -1,0 +1,34 @@
+name: Build Xbox 360 Homebrew
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:   # allows manual "Run workflow" button
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          export DEVKITXENON=/usr/local/xenon
+          export PATH=$DEVKITXENON/bin:$DEVKITXENON/usr/bin:$PATH
+          make clean || true
+          make
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xbox360-homebrew
+          path: |
+            *.elf
+            *.elf32
+            *.xex
+          if-no-files-found: error

@@ -1,0 +1,15 @@
+# Build artefacts
+build/
+*.elf
+*.elf32
+*.xex
+*.map
+*.o
+*.d
+
+# Editor / OS junk
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
