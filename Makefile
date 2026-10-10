@@ -4,7 +4,7 @@
 .SUFFIXES:
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(DEVKITXENON)),)
-$(error "Please set DEVKITXENON in your environment. export DEVKITXENON=<path to>devkitXenon")
+$(error "Please set DEVKITXENON in your environment. export DEVKITXENON=<path to>devkitXenon)
 endif
 
 include $(DEVKITXENON)/rules
@@ -56,7 +56,7 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 #---------------------------------------------------------------------------------
-# automatically build a list of object files for our project
+# automatically build a list of object files for the project
 #---------------------------------------------------------------------------------
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
@@ -93,7 +93,7 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
-.PHONY: $(BUILD) clean
+.PHONY: $(BUILD) clean xex
 
 #---------------------------------------------------------------------------------
 $(BUILD):
@@ -122,12 +122,19 @@ $(OUTPUT).elf: $(OFILES)
 endif
 #---------------------------------------------------------------------------------
 
-# Optional: convert the ELF to a proper unsigned .xex if xextool is available
-xex: $(BUILD) $(OUTPUT).elf32
-	@if command -v xextool >/dev/null 2>&1; then \
-		echo "Creating $(TARGET).xex with xextool..."; \
-		xextool -e -o $(OUTPUT).xex $(OUTPUT).elf32; \
+# Optional: pack the linked PPC32 ELF into an XEX when XexTool is available.
+# This does not guarantee that a libxenon program is compatible with every XEX runtime.
+XEXTOOL ?= XexTool
+xex: $(BUILD) $(OUTPUT).elf
+	@if command -v "$(XEXTOOL)" >/dev/null 2>&1; then \
+		echo "Packing $(TARGET).elf into $(TARGET).xex with XexTool..."; \
+		if "$(XEXTOOL)" pack "$(OUTPUT).elf" -o "$(OUTPUT).xex"; then \
+			echo "XEX file created: $(OUTPUT).xex"; \
+		else \
+			echo "XEX packing failed; keeping ELF outputs for XeLL."; \
+			rm -f "$(OUTPUT).xex"; \
+		fi; \
 	else \
-		echo "xextool not found — skipping .xex creation."; \
+		echo "XexTool not found — skipping .xex creation."; \
 		echo "You can still use $(TARGET).elf32 with XeLL."; \
 	fi
