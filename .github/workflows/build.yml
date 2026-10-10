@@ -36,9 +36,7 @@ jobs:
           make xex
 
           echo "Available build outputs:"
-          find . -maxdepth 3 -type f \\
-            \\( -name '*.elf' -o -name '*.elf32' -o -name '*.xex' \\) \\
-            -print
+          find . -maxdepth 3 -type f -name '*.xex' -print
 
           test -s "./$(basename "$PWD").xex"
 
