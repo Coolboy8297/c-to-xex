@@ -16,43 +16,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build XexTool from source
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends cmake g++ git ca-certificates
-
-          echo "Cloning XexTool and its required submodules..."
-          git clone --depth 1 --recurse-submodules https://github.com/Team-Resurgent/XexTool.git /tmp/XexTool
-
-          echo "Configuring XexTool..."
-          cmake -S /tmp/XexTool -B /tmp/XexTool/build -DCMAKE_BUILD_TYPE=Release
-
-          echo "Compiling XexTool..."
-          cmake --build /tmp/XexTool/build --config Release --parallel 2
-
-          echo "Testing XexTool..."
-          ctest --test-dir /tmp/XexTool/build --output-on-failure
-
-          echo "/tmp/XexTool/build" >> "$GITHUB_PATH"
-
       - name: Build Xbox 360 program
+        shell: bash
         run: |
+          set -euo pipefail
           export DEVKITXENON=/usr/local/xenon
           export PATH="$DEVKITXENON/bin:$DEVKITXENON/usr/bin:$PATH"
 
-          echo "Cleaning previous build..."
-          make clean || true
+          echo "Checking libxenon ELF-to-XEX converter..."
+          command -v xenon-elf2xex
 
-          echo "Compiling project..."
+          echo "Cleaning previous build..."
+          make clean
+
+          echo "Compiling VEYAORA homebrew..."
           make
 
-          echo "Attempting ELF-to-XEX packing..."
+          echo "Converting libxenon ELF to XEX..."
           make xex
 
           echo "Available build outputs:"
-          find . -maxdepth 3 -type f \
-            \( -name '*.elf' -o -name '*.elf32' -o -name '*.xex' \) \
+          find . -maxdepth 3 -type f \\
+            \\( -name '*.elf' -o -name '*.elf32' -o -name '*.xex' \\) \\
             -print
+
+          test -s "./$(basename "$PWD").xex"
 
       - name: Upload Xbox 360 build artifacts
         uses: actions/upload-artifact@v4
