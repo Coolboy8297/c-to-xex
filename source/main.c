@@ -47,7 +47,7 @@ int main(void)
 		struct controller_data_s c;
 		if (get_controller_data(&c, 0)) {
 			/* Exit on Guide or Y */
-			if (c.y && !oldc.y) {
+			if ((c.start && !oldc.start) || (c.y && !oldc.y)) {
 				break;
 			}
 			oldc = c;
