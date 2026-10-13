@@ -91,16 +91,12 @@ jobs:
 
       - name: Publish direct downloads for website visitors
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG="latest-build"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-files/* --clobber
-            gh release edit "$TAG" --title "Latest Xbox 360 build" --notes "Automatically updated from the latest successful build on the default branch. Direct downloads are also linked from the project website."
-          else
-            gh release create "$TAG" release-files/* --title "Latest Xbox 360 build" --notes "Automatically updated from successful builds on the default branch. Direct downloads are also linked from the project website." --prerelease
-          fi
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: Latest Xbox 360 build
+          body: Automatically updated from successful builds on the default branch. These files can be downloaded directly without opening the Actions page.
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: release-files/*
