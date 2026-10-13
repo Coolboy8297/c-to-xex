@@ -64,7 +64,7 @@ jobs:
           path = sys.argv[1]
           with open(path, "rb") as f:
               data = f.read(64)
-          if data[:4] != b"\\x7fELF":
+          if data[:4] != bytes([127, 69, 76, 70]):
               raise SystemExit("ERROR: output is not an ELF file")
           if data[4] != 1:
               raise SystemExit("ERROR: output is not ELF32 (EI_CLASS != ELFCLASS32)")
