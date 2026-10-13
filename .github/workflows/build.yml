@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,7 +39,6 @@ jobs:
           python3 --version
           git clone --depth 1 https://github.com/Team-Resurgent/RXDK360.git /tmp/RXDK360
           test -f /tmp/RXDK360/tools/elf2xex.py
-          # Keep the PE headers in a page before the first linked section.
           sed -i 's/image_base = min(load_vaddrs) if load_vaddrs else None/image_base = (min(load_vaddrs) - 0x1000) if load_vaddrs else None/' /tmp/RXDK360/tools/elf2xex.py
           grep -F 'image_base = (min(load_vaddrs) - 0x1000)' /tmp/RXDK360/tools/elf2xex.py
           sed -e 's|0x80000000|0x82000000|g' \
@@ -58,13 +60,9 @@ jobs:
           XEX="./$(basename "$PWD").xex"
           test -s "$ELF"
           test -s "$ELF32"
-          # Package the full ELF: the stripped ELF32 drops the high address bit
-          # needed for a correctly based Xbox 360 image.
           python3 /tmp/RXDK360/tools/elf2xex.py "$ELF" --no-sign --no-encrypt -o "$XEX"
           test -s "$XEX"
           file "$ELF" "$ELF32" "$XEX"
-          # Fail the build if the packer emits the low 0x02xxxxxx addresses
-          # seen in the previous broken artifact.
           python3 - "$ELF" <<'PY'
           import struct, sys
           path = sys.argv[1]
@@ -77,13 +75,32 @@ jobs:
           if entry < 0x80000000:
               raise SystemExit("ERROR: ELF entry point is below the Xbox 360 kernel address range")
           PY
+          mkdir -p release-files
+          cp "$ELF" release-files/xbox360-homebrew.elf
+          cp "$ELF32" release-files/xbox360-homebrew.elf32
+          cp "$XEX" release-files/xbox360-homebrew.xex
+          cd release-files
+          sha256sum * > SHA256SUMS.txt
 
-      - name: Upload build artifacts
+      - name: Upload build artifacts for maintainers
         uses: actions/upload-artifact@v4
         with:
           name: xbox360-homebrew
-          path: |
-            **/*.elf
-            **/*.elf32
-            **/*.xex
+          path: release-files/*
           if-no-files-found: error
+
+      - name: Publish direct downloads for website visitors
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="latest-build"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-files/* --clobber
+            gh release edit "$TAG" --title "Latest Xbox 360 build" --notes "Automatically updated from the latest successful build on the default branch. Direct downloads are also linked from the project website."
+          else
+            gh release create "$TAG" release-files/* --title "Latest Xbox 360 build" --notes "Automatically updated from successful builds on the default branch. Direct downloads are also linked from the project website." --prerelease
+          fi
