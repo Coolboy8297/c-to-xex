@@ -1,4 +1,4 @@
-name: Build Xbox 360 Homebrew
+name: Build Xbox 360 ELF32
 
 on:
   push:
@@ -14,40 +14,23 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: free60/libxenon:latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare XEX packer and linker layout
+      - name: Configure Xbox 360 linker layout
         shell: bash
         run: |
           set -euo pipefail
           export DEVKITXENON=/usr/local/xenon
           export PATH="$DEVKITXENON/bin:$DEVKITXENON/usr/bin:$PATH"
-          if ! command -v python3 >/dev/null 2>&1; then
-            if command -v apt-get >/dev/null 2>&1; then
-              apt-get update
-              DEBIAN_FRONTEND=noninteractive apt-get install -y python3
-            elif command -v apk >/dev/null 2>&1; then
-              apk add --no-cache python3
-            else
-              echo "ERROR: Python 3 is missing and no supported package manager was found."
-              exit 1
-            fi
-          fi
-          python3 --version
-          git clone --depth 1 https://github.com/Team-Resurgent/RXDK360.git /tmp/RXDK360
-          test -f /tmp/RXDK360/tools/elf2xex.py
-          sed -i 's/image_base = min(load_vaddrs) if load_vaddrs else None/image_base = (min(load_vaddrs) - 0x1000) if load_vaddrs else None/' /tmp/RXDK360/tools/elf2xex.py
-          grep -F 'image_base = (min(load_vaddrs) - 0x1000)' /tmp/RXDK360/tools/elf2xex.py
           sed -e 's|0x80000000|0x82000000|g' \
               -e 's|0x9E000000|0xA0000000|g' \
               -e 's|0xa0000000|0xA2000000|g' \
               "$DEVKITXENON/app.lds" > /tmp/veyaora-app.lds
           cp /tmp/veyaora-app.lds "$DEVKITXENON/app.lds"
 
-      - name: Build and package
+      - name: Build and validate ELF32
         shell: bash
         run: |
           set -euo pipefail
@@ -55,47 +38,47 @@ jobs:
           export PATH="$DEVKITXENON/bin:$DEVKITXENON/usr/bin:$PATH"
           make clean
           make
-          ELF="./$(basename "$PWD").elf"
           ELF32="./$(basename "$PWD").elf32"
-          XEX="./$(basename "$PWD").xex"
-          test -s "$ELF"
           test -s "$ELF32"
-          python3 /tmp/RXDK360/tools/elf2xex.py "$ELF" --no-sign --no-encrypt -o "$XEX"
-          test -s "$XEX"
-          file "$ELF" "$ELF32" "$XEX"
-          python3 - "$ELF" <<'PY'
+          file "$ELF32"
+          python3 - "$ELF32" <<'PY'
           import struct, sys
           path = sys.argv[1]
           with open(path, "rb") as f:
               data = f.read(64)
-          if data[:4] != b"\x7fELF":
-              raise SystemExit("ERROR: expected an ELF input")
+          if data[:4] != b"\\x7fELF":
+              raise SystemExit("ERROR: output is not an ELF file")
+          if data[4] != 1:
+              raise SystemExit("ERROR: output is not ELF32 (EI_CLASS != ELFCLASS32)")
+          if data[5] != 2:
+              raise SystemExit("ERROR: expected big-endian ELF for Xbox 360 PowerPC")
+          machine = struct.unpack(">H", data[18:20])[0]
+          if machine != 20:
+              raise SystemExit(f"ERROR: expected PowerPC ELF (e_machine=20), got {machine}")
           entry = struct.unpack(">I", data[24:28])[0]
-          print(f"ELF entry point: 0x{entry:08X}")
+          print(f"Validated big-endian PowerPC ELF32; entry point: 0x{entry:08X}")
           if entry < 0x80000000:
               raise SystemExit("ERROR: ELF entry point is below the Xbox 360 kernel address range")
           PY
           mkdir -p release-files
-          cp "$ELF" release-files/xbox360-homebrew.elf
           cp "$ELF32" release-files/xbox360-homebrew.elf32
-          cp "$XEX" release-files/xbox360-homebrew.xex
           cd release-files
           sha256sum * > SHA256SUMS.txt
 
-      - name: Upload build artifacts for maintainers
+      - name: Upload ELF32 build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: xbox360-homebrew
+          name: xbox360-elf32
           path: release-files/*
           if-no-files-found: error
 
-      - name: Publish direct downloads for website visitors
+      - name: Publish ELF32 direct download
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-build
-          name: Latest Xbox 360 build
-          body: Automatically updated from successful builds on the default branch. These files can be downloaded directly without opening the Actions page.
+          name: Latest Xbox 360 ELF32
+          body: Automatically built as big-endian PowerPC ELF32 for Xbox 360 homebrew. This is an ELF32 executable, not an XEX.
           prerelease: true
           make_latest: false
           overwrite_files: true
