@@ -1,8 +1,8 @@
 /* HTML/CSS/JS → native Xbox 360 UI compiler, supported subset v1. */
 (function () {
 "use strict";
-var BLOCK={div:1,section:1,main:1,header:1,footer:1,nav:1,article:1,h1:1,h2:1,h3:1,p:1,button:1,a:1,label:1,hr:1,br:1,ul:1,ol:1,li:1};
-var TEXT={h1:26,h2:21,h3:18,p:15,button:16,a:15,label:14,li:15};
+var BLOCK={div:1,section:1,main:1,header:1,footer:1,nav:1,article:1,h1:1,h2:1,h3:1,p:1,button:1,a:1,label:1,span:1,strong:1,em:1,small:1,b:1,i:1,hr:1,br:1,ul:1,ol:1,li:1};
+var TEXT={h1:26,h2:21,h3:18,p:15,button:16,a:15,label:14,span:15,strong:15,em:15,small:13,b:15,i:15,li:15};
 function esc(s){return String(s).replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\?/g,"\\?").replace(/\r/g,"\\r").replace(/\n/g,"\\n").replace(/\t/g,"\\t");}
 function color(v,fallback){
  if(!v)return fallback; v=String(v).trim().toLowerCase();
@@ -30,7 +30,7 @@ function compile(source){
  var bg=color(st["background-color"]||st.background,tag==="button"?"0x24374A":"0x101827"),fg=color(st.color,tag==="a"?"0x62E6D2":"0xF2F5FA"),handler=el.getAttribute("onclick")||"",act="",alert=handler.match(/alert\s*\(\s*(['"])(.*?)\1\s*\)/s);
  if(alert)act=alert[2];else if(handler)warnings.push("Ignored unsupported onclick handler; v1 supports alert('message') only.");
  els.push({x:28+depth*12,y:y,w:w,h:h,bg:bg,fg:fg,button:(tag==="button"||tag==="a"||!!handler)?1:0,text:txt,action:act});y+=h+(parseInt(st["margin-bottom"],10)||12);}}
- else [].slice.call(el.children).forEach(function(c){walk(c,depth+1);});
+ else {var direct=[].slice.call(el.childNodes).filter(function(n){return n.nodeType===3;}).map(function(n){return n.nodeValue;}).join(' ').replace(/\\s+/g,' ').trim();if(direct){var db=color(st['background-color']||st.background,'0x101827'),df=color(st.color,'0xF2F5FA');els.push({x:28+depth*12,y:y,w:Math.min(1120,Math.max(180,direct.length*9)),h:24,bg:db,fg:df,button:0,text:direct,action:''});y+=36;}[].slice.call(el.children).forEach(function(c){walk(c,depth+1);});}
  }
  [].slice.call(root.children).forEach(function(c){walk(c,0);});
  if(!els.length)throw new Error("No supported visible text, links, or buttons found.");
