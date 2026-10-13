@@ -1,60 +1,35 @@
-# C → XEX (Xbox 360)
+# Eaglercraft 26.2 — Xbox 360 Lab
 
-Minimal template + **GitHub Actions** that turns `.c` files into Xbox 360 homebrew binaries using **libxenon**.
+An experimental research project exploring what it would take to bring an Eaglercraft-inspired, controller-first block game to Xbox 360 homebrew.
 
-Push code → GitHub builds it → download the `.elf32` (and optionally `.xex`).
+**Project page:** https://coolboy8297.github.io/c-to-xex/  
+**Builds:** https://github.com/Coolboy8297/c-to-xex/actions
 
-## How to use (easiest way)
+## Current status
 
-1. **Fork** this repository (or create a new repo and copy these files).
-2. Put your `.c` / `.cpp` files in the `source/` folder.
-3. Push to `main` (or `master`).
-4. Go to the **Actions** tab → click the latest workflow run → download the **xbox360-homebrew** artifact.
-5. Inside the zip you will find:
-   - `*.elf32` ← this is what you use with XeLL
-   - `*.elf`
-   - `*.xex` (only if xextool was available)
+- The root `index.html` is a GitHub Pages landing page with an interactive browser-only block sandbox.
+- The existing GitHub Actions workflow builds the repository's C/C++ LibXenon project and publishes build artifacts.
+- The browser sandbox is **not Eaglercraft 26.2** and is not an Xbox executable.
+- Eaglercraft's browser runtime cannot be converted to XEX by renaming the HTML or passing it through a C compiler. A native port or compatible runtime would be required.
 
-You can also trigger a build manually with the **Run workflow** button.
+## First milestones
 
-## Local build (optional)
+1. Confirm the current LibXenon ELF starts reliably on the target console.
+2. Build a minimal native test for graphics initialization and controller input.
+3. Prototype block rendering and measure performance/memory.
+4. Research the runtime and rendering work needed for an actual Eaglercraft 26.2 port.
 
-```bash
-# Requires libxenon / devkitXenon installed, or use the Docker image:
-docker run --rm -v "$PWD":/app -w /app free60/libxenon:latest make
+See [PORTING_PLAN.md](PORTING_PLAN.md) for the technical breakdown.
 
-# or with environment set:
-export DEVKITXENON=/usr/local/xenon
-export PATH=$DEVKITXENON/bin:$PATH
-make
-```
+## Publish the website
 
-## Project layout
+In the repository, open **Settings → Pages**. Set **Source** to **Deploy from a branch**, select **main** and **/(root)**, then save. The site entry point is the root `index.html`. GitHub may take a few minutes to publish the first build.
 
-```
-├── .github/workflows/build.yml   ← automatic builder
-├── Makefile
-├── source/
-│   └── main.c                    ← put your code here
-├── data/                         ← binary assets (optional)
-├── README.md
-└── .gitignore
-```
+## Xbox 360 build workflow
 
-## Running on hardware
+Push C/C++ source into `source/`, then open the **Actions** tab and download the `xbox360-homebrew` artifact from a completed build. The existing build workflow is experimental; test new builds carefully and keep known-working ELF files backed up.
 
-You need an RGH / JTAG / XeLL-capable Xbox 360.
+## Links
 
-1. Copy the `.elf32` to the root of a FAT32 USB stick.
-2. Rename it to `xenon.elf`.
-3. Boot XeLL — it loads the file automatically.
-
-## Notes
-
-- Uses the open-source **libxenon** toolchain via the official `free60/libxenon` Docker image.
-- No official Microsoft XDK required.
-- The binary is unsigned homebrew — it will not run on a stock retail dashboard.
-
-## License
-
-Public domain. Do whatever you want.
+- [GitHub Actions](https://github.com/Coolboy8297/c-to-xex/actions)
+- [Eaglercraft 26.2 in a browser](https://eaglercraft.com/play?version=26.2)
