@@ -20,11 +20,11 @@ The release is updated after a successful build on the default branch. These lin
 
 1. Open the website and drop in an `.html` file.
 2. Click **Convert HTML to C**, then download the generated `.c` source.
-3. The website currently converts visible HTML text into C console-print statements. It does not compile each visitor's uploaded file into a custom ELF/XEX.
+3. The website now has a native UI compiler frontend. It compiles a limited subset of HTML text, links/buttons, simple CSS colors/sizes, and simple `onclick="alert('message')"` handlers into C UI elements. The native renderer is in `source/webui_runtime.c` and `source/webui_runtime.h`. It is not a complete browser engine: arbitrary JavaScript, flex/grid, images, canvas, SVG, WebGL, and complex DOM behavior are not supported. To build a custom app, replace `source/main.c` with the downloaded generated C file, keep the runtime files, and build with the LibXenon toolchain. The published XEX remains the repository's committed program and is not built from each visitor's upload.
 
 ## Important limits
 
-- The current converter turns the HTML document's visible text into C console-print statements. It does **not** translate arbitrary CSS styling, images, canvas/WebGL, DOM behavior, or JavaScript logic into native code.
+- The native UI compiler supports only a defined subset. It does not translate arbitrary CSS styling, images, canvas/WebGL, DOM behavior, or general JavaScript logic into native code.
 - This is a first-stage text conversion, not a full browser engine. A complex web game such as Eaglercraft cannot become a working native Xbox game through this simple conversion; its runtime and rendering would need to be ported or implemented separately.
 - GitHub Pages cannot run the Xbox toolchain itself. The site generates C in the browser; GitHub Actions compiles the repository's committed C using LibXenon, then publishes direct release downloads.
 - Builds are experimental. Check build results and test ELF32 compatibility on the target console.
