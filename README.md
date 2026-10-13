@@ -25,7 +25,7 @@ The release is updated after a successful build on the default branch. These lin
 ## Important limits
 
 - The native UI compiler supports only a defined subset. It does not translate arbitrary CSS styling, images, canvas/WebGL, DOM behavior, or general JavaScript logic into native code.
-- This is a first-stage text conversion, not a full browser engine. A complex web game such as Eaglercraft cannot become a working native Xbox game through this simple conversion; its runtime and rendering would need to be ported or implemented separately.
+- This is a first-stage native UI compiler, not a full browser engine. A complex web game such as Eaglercraft cannot become a working native Xbox game through this simple conversion; its runtime and rendering would need to be ported or implemented separately.
 - GitHub Pages cannot run the Xbox toolchain itself. The site generates C in the browser; GitHub Actions compiles the repository's committed C using LibXenon, then publishes direct release downloads.
 - Builds are experimental. Check build results and test ELF32 compatibility on the target console.
 
